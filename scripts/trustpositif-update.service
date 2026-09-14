@@ -1,0 +1,12 @@
+[Unit]
+Description=Update TrustPositif blocklist for SARING DNS
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=trustpositif
+Group=trustpositif
+WorkingDirectory=/opt/trustpositif-dashboard
+EnvironmentFile=-/opt/trustpositif-dashboard/.env
+ExecStart=/opt/trustpositif-dashboard/venv/bin/python /opt/trustpositif-dashboard/scripts/fetch_trustpositif.py

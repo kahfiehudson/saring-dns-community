@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Masuk &middot; SARING DNS{% endblock %}
+{% block content %}
+<div class="login-box">
+  <img src="/static/logo.png" alt="SARING" class="login-logo">
+  <h1>SARING DNS</h1>
+  <p class="muted">Secure Access &amp; Resolution Intelligence Network Gateway</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="/login">
+    <label>Username<input type="text" name="username" required autofocus></label>
+    <label>Password<input type="password" name="password" required></label>
+    <button type="submit" class="primary">Masuk</button>
+  </form>
+</div>
+{% endblock %}

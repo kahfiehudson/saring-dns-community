@@ -1,0 +1,16 @@
+[Unit]
+Description=SARING DNS Dashboard
+After=network.target unbound.service
+
+[Service]
+Type=simple
+User=trustpositif
+Group=trustpositif
+WorkingDirectory=/opt/trustpositif-dashboard
+EnvironmentFile=-/opt/trustpositif-dashboard/.env
+ExecStart=/opt/trustpositif-dashboard/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

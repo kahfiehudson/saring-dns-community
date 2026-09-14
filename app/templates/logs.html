@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Log &middot; SARING DNS{% endblock %}
+{% block content %}
+<h1>Log</h1>
+
+<div class="card stats-card">
+  <h3>Aktivitas Terakhir</h3>
+  <p class="muted small">20 aksi terakhir yang dilakukan lewat dashboard ini (simpan pengaturan, tambah/hapus domain, restart/reload manual, dst.) &mdash; beda dengan log sistem mentah di bawah.</p>
+  <table class="list">
+    <thead><tr><th>Waktu</th><th>Aksi</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for a in activity %}
+      <tr>
+        <td class="muted" style="white-space: nowrap;">{{ a.when }}</td>
+        <td>{{ a.action }} {% if not a.ok %}<span class="error">(gagal)</span>{% endif %}</td>
+        <td class="muted">{{ a.detail }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="3" class="muted">Belum ada aktivitas tercatat</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card stats-card">
+  <h3>Log Sistem</h3>
+  <p class="muted small">Sumber: journalctl (unbound, trustpositif-dashboard, trustpositif-update) &mdash; 300 baris terakhir.</p>
+  {% if error %}<p class="error">Gagal membaca log: {{ error }}</p>{% endif %}
+  {% if log_text %}
+    <pre class="log-box">{{ log_text }}</pre>
+  {% elif not error %}
+    <p class="muted">Belum ada entri log.</p>
+  {% endif %}
+</div>
+{% endblock %}

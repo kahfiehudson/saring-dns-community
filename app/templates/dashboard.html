@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Dashboard &middot; SARING DNS{% endblock %}
+{% block content %}
+<h1>Ringkasan</h1>
+
+<div class="cards">
+  <div class="card">
+    <h3>Status Update Terakhir</h3>
+    {% if status %}
+      <p>Status: <strong>{{ status.get("status", "-") }}</strong></p>
+      <p>Total domain diblokir: <strong>{{ "{:,}".format(status.get("total_domains", 0)) }}</strong></p>
+      <p>Selesai: {{ status.get("finished_at") | to_wib }}</p>
+      {% if next_update %}<p>Update berikutnya: <strong>{{ next_update }}</strong></p>{% endif %}
+      {% if status.get("message") %}<p class="muted">{{ status.get("message") }}</p>{% endif %}
+    {% else %}
+      <p class="muted">Belum ada update yang tercatat. Timer sistem akan menjalankan update otomatis, atau jalankan manual:
+      <code>python3 scripts/fetch_trustpositif.py</code></p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Kontrol Unbound</h3>
+    <p>Status:
+      <strong id="unbound-status-text" class="{{ 'ok' if unbound_status.active else 'error' }}">
+        <span id="unbound-status-dot" class="live-dot" style="background: {{ 'var(--ok)' if unbound_status.active else 'var(--error)' }};"></span>
+        <span id="unbound-status-label">{{ "Aktif" if unbound_status.active else "Tidak Aktif (" + unbound_status.state + ")" }}</span>
+      </strong>
+    </p>
+    {% if unbound_status.since %}<p class="muted small">Berjalan sejak: {{ unbound_status.since }}</p>{% endif %}
+    <div class="inline-form" style="margin-top: 0.8rem;">
+      <form method="post" action="/unbound/reload" onsubmit="return confirm('Reload konfigurasi Unbound sekarang?')">
+        <button type="submit">Reload</button>
+      </form>
+      <form method="post" action="/unbound/restart" onsubmit="return confirm('Restart Unbound sekarang? Query yang bertepatan bisa gagal sesaat.')">
+        <button type="submit">Restart</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<div class="card stats-card live-card">
+  <h3>Query Real-time <span class="live-dot" aria-hidden="true"></span></h3>
+  <div class="live-hero"><span id="live-qps">-</span><span class="live-unit">/detik</span></div>
+  <div class="live-sub">
+    <span><span class="legend-key" style="background: var(--accent)"></span> <span id="live-hits">-</span>/dtk cache hit</span>
+    <span><span class="legend-key" style="background: var(--series-2)"></span> <span id="live-misses">-</span>/dtk cache miss</span>
+  </div>
+  <p class="muted small">Dihitung live dari dua polling terakhir (~3 detik) &mdash; butuh beberapa detik setelah halaman dibuka sebelum angkanya muncul.</p>
+</div>
+
+<div class="card stats-card live-card">
+  <h3>Server Real-time <span class="live-dot" aria-hidden="true"></span></h3>
+  <div class="kpi-row">
+    <div class="kpi-tile">
+      <div class="kpi-value"><span id="live-cpu">-</span><span class="live-unit">%</span></div>
+      <div class="kpi-label">CPU</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-value"><span id="live-mem">-</span><span class="live-unit">%</span></div>
+      <div class="kpi-label">RAM</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-value"><span id="live-disk">-</span><span class="live-unit">%</span></div>
+      <div class="kpi-label">Disk</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-value" id="live-load">-</div>
+      <div class="kpi-label">Load average (1 mnt)</div>
+    </div>
+  </div>
+  <p class="muted small">CPU dihitung live dari dua polling terakhir; RAM/Disk/Load average selalu nilai saat ini.</p>
+</div>
+
+<div class="card stats-card">
+  <h3>Statistik Cache DNS</h3>
+  {% if kpis %}
+    <div class="meter">
+      <div class="meter-label">
+        <span>Cache hit rate</span>
+        <span class="meter-value" id="kpi-hit-rate">{{ kpis.hit_rate }}%</span>
+      </div>
+      <div class="meter-track">
+        <div class="meter-fill" id="kpi-hit-rate-fill" style="width: {{ kpis.hit_rate }}%;"></div>
+      </div>
+      <p class="muted meter-caption">Porsi query yang terjawab dari cache tanpa perlu resolusi rekursif baru &mdash; makin tinggi, makin ringan beban server.</p>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-tile">
+        <div class="kpi-value" id="kpi-total">{{ kpis.total_queries | compact_number }}</div>
+        <div class="kpi-label">Total query</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-value" id="kpi-hits">{{ kpis.cache_hits | compact_number }}</div>
+        <div class="kpi-label">Cache hit</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-value" id="kpi-misses">{{ kpis.cache_misses | compact_number }}</div>
+        <div class="kpi-label">Cache miss</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-value" id="kpi-recursive">{{ kpis.recursive_replies | compact_number }}</div>
+        <div class="kpi-label">Balasan rekursif</div>
+      </div>
+    </div>
+    <p class="muted small">Snapshot sejak Unbound terakhir start/restart, live tiap ~3 detik.</p>
+  {% else %}
+    <p class="muted">Statistik unbound-control tidak tersedia. Pastikan <code>remote-control</code> aktif dan sudoers dashboard sudah dikonfigurasi (lihat docs/SETUP.md).</p>
+  {% endif %}
+</div>
+
+<script>
+function compactNumber(n) {
+  n = Number(n);
+  if (Math.abs(n) < 10000) return Math.trunc(n).toLocaleString("en-US");
+  if (Math.abs(n) < 1000000) return (n / 1000).toFixed(1) + "K";
+  return (n / 1000000).toFixed(1) + "M";
+}
+
+(function () {
+  var elQps = document.getElementById("live-qps");
+  var elHits = document.getElementById("live-hits");
+  var elMisses = document.getElementById("live-misses");
+  var elStatusText = document.getElementById("unbound-status-text");
+  var elStatusDot = document.getElementById("unbound-status-dot");
+  var elStatusLabel = document.getElementById("unbound-status-label");
+  var elKpiTotal = document.getElementById("kpi-total");
+  var elKpiHits = document.getElementById("kpi-hits");
+  var elKpiMisses = document.getElementById("kpi-misses");
+  var elKpiRecursive = document.getElementById("kpi-recursive");
+  var elKpiHitRate = document.getElementById("kpi-hit-rate");
+  var elKpiHitRateFill = document.getElementById("kpi-hit-rate-fill");
+
+  if (elQps) {
+    var prev = null;
+
+    function poll() {
+      fetch("/api/live-stats", { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (elStatusText && data.unbound_active !== undefined) {
+            elStatusText.classList.toggle("ok", data.unbound_active);
+            elStatusText.classList.toggle("error", !data.unbound_active);
+            if (elStatusLabel) elStatusLabel.textContent = data.unbound_active ? "Aktif" : "Tidak Aktif";
+            if (elStatusDot) elStatusDot.style.background = data.unbound_active ? "var(--ok)" : "var(--error)";
+          }
+          if (!data.ok) { prev = null; return; }
+
+          if (elKpiTotal) {
+            elKpiTotal.textContent = compactNumber(data.total_queries);
+            elKpiHits.textContent = compactNumber(data.cache_hits);
+            elKpiMisses.textContent = compactNumber(data.cache_misses);
+            elKpiRecursive.textContent = compactNumber(data.recursive_replies);
+            var denom = data.cache_hits + data.cache_misses;
+            var hitRate = denom ? Math.round((data.cache_hits / denom) * 1000) / 10 : 0;
+            elKpiHitRate.textContent = hitRate + "%";
+            elKpiHitRateFill.style.width = hitRate + "%";
+          }
+
+          if (prev && data.total_queries >= prev.total_queries) {
+            var dt = data.ts - prev.ts;
+            if (dt > 0) {
+              var qps = (data.total_queries - prev.total_queries) / dt;
+              var hps = (data.cache_hits - prev.cache_hits) / dt;
+              var mps = (data.cache_misses - prev.cache_misses) / dt;
+              elQps.textContent = qps.toFixed(1);
+              elHits.textContent = hps.toFixed(1);
+              elMisses.textContent = mps.toFixed(1);
+            }
+          }
+          prev = data;
+        })
+        .catch(function () {});
+    }
+
+    poll();
+    setInterval(poll, 3000);
+  }
+})();
+
+(function () {
+  var elCpu = document.getElementById("live-cpu");
+  var elMem = document.getElementById("live-mem");
+  var elDisk = document.getElementById("live-disk");
+  var elLoad = document.getElementById("live-load");
+
+  if (elCpu) {
+    var prev = null;
+
+    function poll() {
+      fetch("/api/live-resources", { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) return;
+          if (data.mem_percent !== null && data.mem_percent !== undefined) elMem.textContent = data.mem_percent.toFixed(1);
+          if (data.disk_percent !== null && data.disk_percent !== undefined) elDisk.textContent = data.disk_percent.toFixed(1);
+          if (data.load1 !== null && data.load1 !== undefined) elLoad.textContent = data.load1.toFixed(2);
+          if (prev && data.cpu_total !== null && data.cpu_total >= prev.cpu_total) {
+            var totalDelta = data.cpu_total - prev.cpu_total;
+            var idleDelta = data.cpu_idle - prev.cpu_idle;
+            if (totalDelta > 0) {
+              var cpuPct = Math.max(0, Math.min(100, 100 * (1 - idleDelta / totalDelta)));
+              elCpu.textContent = cpuPct.toFixed(1);
+            }
+          }
+          prev = data;
+        })
+        .catch(function () {});
+    }
+
+    poll();
+    setInterval(poll, 3000);
+  }
+})();
+</script>
+{% endblock %}
