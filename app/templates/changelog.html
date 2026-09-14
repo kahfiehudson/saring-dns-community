@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Changelog &middot; SARING DNS{% endblock %}
+{% block content %}
+<h1>Changelog</h1>
+<p class="muted">Riwayat penambahan fitur dan revisi dashboard ini sejak rilis awal, versi terbaru di
+  atas &mdash; total {{ changelog | length }} rilis sejauh ini.</p>
+
+{% for rel in changelog %}
+<div class="card" style="margin-bottom: 1rem;">
+  <h3>
+    v{{ rel.version }}{% if rel.version == app_version %} <span class="ok">(versi saat ini)</span>{% endif %}
+    &mdash; {{ rel.title }}
+  </h3>
+  {% if rel.date %}<p class="muted small">{{ rel.date }}</p>{% endif %}
+  <ul>
+    {% for item in rel['items'] %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan DNS &middot; SARING DNS{% endblock %}
+{% block content %}
+<h1>Pengaturan DNS</h1>
+{% if message %}<p class="ok">{{ message }}</p>{% endif %}
+{% if error %}<pre class="error">{{ error }}</pre>{% endif %}
+
+<form method="post" action="/settings" class="settings-form">
+
+  <fieldset>
+    <legend>Jadwal Sinkronisasi Blocklist</legend>
+    <label>Frekuensi update (blocklist resmi TrustPositif)
+      <select name="update_schedule">
+        {% for label, value in schedule_choices %}
+        <option value="{{ value }}" {% if s.update_schedule == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <p class="muted">
+      Seberapa sering <code>fetch_trustpositif.py</code> download ulang daftar domain dan rebuild database LMDB
+      yang dipakai modul Python (pymod) untuk blokir. Makin sering, makin cepat domain baru dari Komdigi ikut
+      terblokir, tapi juga makin sering ada jeda singkat saat Unbound restart menerapkan data baru.
+    </p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Mode Blokir TrustPositif</legend>
+    <label><input type="radio" name="block_mode" value="nxdomain" {% if s.block_mode == "nxdomain" %}checked{% endif %}> NXDOMAIN &mdash; domain terlihat tidak terdaftar</label>
+    <label><input type="radio" name="block_mode" value="redirect" {% if s.block_mode == "redirect" %}checked{% endif %}> Redirect ke halaman blokir (walled garden)</label>
+    <label>IP halaman blokir
+      <input type="text" name="redirect_ip" value="{{ s.redirect_ip }}" placeholder="203.0.113.10">
+    </label>
+    <p class="muted">Catatan: redirect hanya bekerja mulus untuk HTTP biasa. Untuk situs HTTPS, browser akan menampilkan peringatan sertifikat karena nama domain di sertifikat tidak cocok dengan halaman blokir &mdash; ini keterbatasan bawaan semua DNS-based filtering, bukan bug di sini.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Mode Resolusi</legend>
+    <label><input type="radio" name="resolve_mode" value="recursive" {% if s.resolve_mode == "recursive" %}checked{% endif %}> Rekursif (root hints, default)</label>
+    <label><input type="radio" name="resolve_mode" value="forward" {% if s.resolve_mode == "forward" %}checked{% endif %}> Forward ke upstream resolver</label>
+    <label>Upstream (pisahkan koma, format ip@port)
+      <input type="text" name="forward_upstreams" value="{{ s.forward_upstreams }}">
+    </label>
+    <label><input type="checkbox" name="forward_use_tls" {% if s.forward_use_tls %}checked{% endif %}> Gunakan DNS-over-TLS ke upstream</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>SafeSearch Enforcement</legend>
+    <label><input type="checkbox" name="safesearch_google" {% if s.safesearch_google %}checked{% endif %}> Google Search</label>
+    <label><input type="checkbox" name="safesearch_youtube" {% if s.safesearch_youtube %}checked{% endif %}> YouTube (Mode Terbatas / Restricted Mode - Strict)</label>
+    <label><input type="checkbox" name="safesearch_bing" {% if s.safesearch_bing %}checked{% endif %}> Bing</label>
+    <label><input type="checkbox" name="safesearch_duckduckgo" {% if s.safesearch_duckduckgo %}checked{% endif %}> DuckDuckGo</label>
+    <p class="muted">
+      Memaksa mode pencarian/konten aman bawaan tiap provider, memakai mekanisme resmi masing-masing (bukan
+      lewat blocklist) &mdash; Google/YouTube/DuckDuckGo lewat CNAME ke endpoint SafeSearch resmi mereka, Bing
+      lewat IP strict SafeSearch resmi Microsoft. Berlaku untuk domain utama tiap provider yang paling umum
+      dipakai; tidak menjamin cakupan 100% semua subdomain/ccTLD yang ada.
+    </p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Keamanan &amp; Privasi</legend>
+    <label><input type="checkbox" name="dnssec_enabled" {% if s.dnssec_enabled %}checked{% endif %}> Validasi DNSSEC</label>
+    <label><input type="checkbox" name="qname_minimisation" {% if s.qname_minimisation %}checked{% endif %}> QNAME Minimisation</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Kontrol Akses</legend>
+    <label>Daftar CIDR (satu entri per baris, format: <code>cidr allow|refuse|deny</code>)
+      <textarea name="access_control_cidrs" rows="10" style="font-family: Consolas, monospace;">{{ s.access_control_cidrs }}</textarea>
+    </label>
+    <p class="muted small">Satu baris = satu rentang IP. Tambah baris baru untuk menambah entri, hapus barisnya untuk menghapus - tidak perlu pusing dengan koma.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Logging</legend>
+    <label><input type="checkbox" name="log_queries" {% if s.log_queries %}checked{% endif %}> Catat semua query DNS</label>
+    <label>Verbosity (0-5)<input type="number" name="verbosity" min="0" max="5" value="{{ s.verbosity }}"></label>
+  </fieldset>
+
+  <button type="submit" class="primary">Simpan &amp; Terapkan</button>
+</form>
+{% endblock %}

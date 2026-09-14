@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Akun Saya &middot; SARING DNS{% endblock %}
+{% block content %}
+<h1>Akun Saya</h1>
+<p class="muted">Login sebagai <strong>{{ account.username }}</strong>.</p>
+
+{% if message %}<p class="ok">{{ message }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<div class="card">
+  <h3>Ganti Password</h3>
+  <form method="post" action="/account/password">
+    <p><label>Password saat ini<br><input type="password" name="current_password" required></label></p>
+    <p><label>Password baru<br><input type="password" name="new_password" minlength="8" required></label></p>
+    <p><label>Konfirmasi password baru<br><input type="password" name="confirm_password" minlength="8" required></label></p>
+    <button type="submit">Ganti Password</button>
+  </form>
+</div>
+{% endblock %}

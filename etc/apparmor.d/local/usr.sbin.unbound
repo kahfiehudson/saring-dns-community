@@ -1,0 +1,6 @@
+# trustpositif: pymod/trustpositif_block.py periodically flushes a small
+# top-domains snapshot here for the dashboard to read (see
+# scripts/collect_stats.py) - the packaged profile only grants blanket read
+# access under /etc/unbound/, so this write needs an explicit local grant.
+owner /etc/unbound/trustpositif/pymod/top_domains.json rw,
+owner /etc/unbound/trustpositif/pymod/top_domains.json.tmp rw,
