@@ -71,8 +71,8 @@ seperti butuh "Catat semua query DNS" atau tidak, dsb.), lihat **docs/FITUR.md**
 
 **OS**: Ubuntu Server 22.04/24.04 LTS atau Debian 12 Bookworm. Root access.
 
-**Spesifikasi minimum**: 2 vCPU, 2GB RAM, 10GB disk bebas. **Direkomendasikan**: 2 vCPU, 4-8GB RAM,
-20GB+ disk — pymod+LMDB sendiri terukur cukup nyaman di sini (lihat catatan RAM di atas). Detail lengkap
+**Spesifikasi minimum**: 2 vCPU, 2GB RAM, 10GB ssd. **Direkomendasikan**: 2 vCPU, 4-8GB RAM,
+20GB+ ssd. Detail lengkap
 &amp; alasannya di docs/SETUP.md §1.
 
 ```bash
